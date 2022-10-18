@@ -416,7 +416,50 @@ var createCmd = &cobra.Command{
 				}
 
 				// Build cluster kubeconfig
-				kubeconfig := generateKubeconfig(name, clientAuthAPIVersion, awsIamClusterAdminRoleArn)
+				kubeconfig := KubernetesConfig{
+					ApiVersion:     "v1",
+					CurrentContext: name,
+					Kind:           "Config",
+					Preferences:    map[string]interface{}{},
+					Clusters: []KubernetesCluster{
+						{
+							Cluster: KubernetesClusterCluster{
+								Server: "https://api." + name,
+							},
+							Name: name,
+						},
+					},
+					Contexts: []KubernetesContext{
+						{
+							Context: KubernetesContextContext{
+								Cluster: name,
+								User:    name,
+							},
+							Name: name,
+						},
+					},
+					Users: []KubernetesUser{
+						{
+							Name: name,
+							User: KubernetesUserUser{
+								Exec: &map[string]interface{}{
+									"apiVersion": clientAuthAPIVersion,
+									"args": []string{
+										"token",
+										"-i",
+										name,
+										"-r",
+										awsIamClusterAdminRoleArn,
+									},
+									"command":            "aws-iam-authenticator",
+									"env":                nil,
+									"interactiveMode":    "IfAvailable",
+									"provideClusterInfo": false,
+								},
+							},
+						},
+					},
+				}
 
 				var kubeconfigBytes []byte
 				if kubeconfigBytes, err = yaml.Marshal(kubeconfig); err != nil {
